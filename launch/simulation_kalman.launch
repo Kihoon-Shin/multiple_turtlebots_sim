@@ -1,0 +1,22 @@
+<launch>
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/empty.world"/>
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+    </include>
+
+    <include file="$(find multiple_turtlebots_sim)/launch/robots.launch"/>
+    
+    <arg name="node_start_delay" default="1.0" />  
+    <node pkg="multiple_turtlebots_sim" type="get_local_se2_pose.py" name="get_local_se2_pose" />
+    <node pkg="multiple_turtlebots_sim" type="move_turtlebot.py" name="move_turtlebot"/>
+
+    <node pkg="multiple_turtlebots_sim" type="relative_measrement" name="relative_measrement"/>
+    <node pkg="multiple_turtlebots_sim" type="my_kf_node" name="my_kf_node"/>
+    <node pkg="multiple_turtlebots_sim" type="timesync" name="timesync"/>
+    
+</launch>
