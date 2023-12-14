@@ -64,3 +64,6 @@ target_link_libraries(plot_node ${catkin_LIBRARIES} ${Python3_LIBRARIES})
 
 add_executable(my_sliding_nls_node src/my_sliding_nls_node.cpp)
 target_link_libraries(my_sliding_nls_node ${catkin_LIBRARIES} ${CERES_LIBRARIES} ${Python3_LIBRARIES})
+
+add_executable(my_sliding_filtering_nls_node src/my_sliding_filtering_nls_node.cpp)
+target_link_libraries(my_sliding_filtering_nls_node ${catkin_LIBRARIES} ${CERES_LIBRARIES} ${Python3_LIBRARIES})

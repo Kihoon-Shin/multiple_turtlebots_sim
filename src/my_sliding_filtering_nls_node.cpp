@@ -266,8 +266,8 @@ int main(int argc, char** argv)
   //  vector<double> trueVj(csvparser.ncol_, 0.2);
   //  vector<double> trueWj(csvparser.ncol_, 0.1);
 
-    vector<double> vj(colSize, 0.3);
-    vector<double> wj(colSize, 0.05);
+    vector<double> vj(colSize+1, 0.3);
+    vector<double> wj(colSize+1, 0.05);
     vector<double> trueVj(colSize, 0.4);
     vector<double> trueWj(colSize, 0.09);
 
@@ -300,133 +300,47 @@ int main(int argc, char** argv)
         visualization.push_back(i); // for matplotlib plot
     }
 
-    // init param
-    vector<double> initialXji;
-    vector<double> initialYji;
-    vector<double> initialThetaji;
-    vector<double> initialVj;
-    vector<double> initialWj;
-    initialXji=xji;
-    initialYji=yji;
-    initialThetaji=thetaji;
-    initialVj = vj;
-    initialWj = wj;
-
     vector<double> slidingXji;
     vector<double> slidingYji;
     vector<double> slidingThetaji;
     vector<double> slidingVj;
     vector<double> slidingWj;
 
-    int stepSize = colSize / 10;
-    int numOfSliding = colSize / stepSize;
-    int arithmeticNum = colSize % stepSize;
-
-    cout << "step size is " << stepSize << " numOfSliding is : " << numOfSliding << " arithmeticNum is : " << arithmeticNum << endl;
-
+    int slidingWindow = colSize / 8;
+    int numOfSliding = colSize - slidingWindow + 1; // 862
 
     // ====================================Optimization========================================
+
     // Record the starting time
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // Perform task that you want to measure the duration
-    for(int i = 1; i <= numOfSliding+1; ++i)
+    for(int i = 0; i < numOfSliding; ++i)
     {
       ceres::Problem problem;
 
+      xji.clear();
+      yji.clear();
+      thetaji.clear();
 
-      for(int j=0; j< colSize ;j++){
-          xji.push_back(csvparser.data_[j][5]);
-          yji.push_back(csvparser.data_[j][6]);
-          thetaji.push_back(csvparser.data_[j][7]);
+      for(int j = 0; j < colSize; j++){
+        xji.push_back(csvparser.data_[j][5]);
+        yji.push_back(csvparser.data_[j][6]);
+        thetaji.push_back(csvparser.data_[j][7]);
       }
+//      cout << xji.size() << ", " << vj.size() << endl;
 
-      if (i != numOfSliding + 1)
+      for(int k = 0 + i; k < slidingWindow + i; ++k)
       {
-        cout << "Iteration " << i << endl;
-
-        int slidingWindow = stepSize * i;
-
-        for(int k = 0; k < slidingWindow-1; ++k)
-        {
-//          // case 1~3 odometry constraint
-//          problem.AddResidualBlock(
-//                NetworkOdomConstraint::Create(delta_t[k]),
-//                NULL,
-//                &(xji[k]),
-//                &(yji[k]),
-//                &(thetaji[k]),
-//                &(xji[k+1]),
-//                &(yji[k+1]),
-//                &(thetaji[k+1]));
-
-
-          // measurement constraint
-
-//             problem.AddResidualBlock(
-//               MyConstraintCase1::Create(rho[k]),
-//               NULL,
-//               &xji[k],
-//               &yji[k]
-//               );
-
-//             problem.AddResidualBlock(
-//                   MyConstraintCase2::Create(beta[k]),
-//                 NULL,
-//                 &xji[k],
-//                 &yji[k]
-//                   );
-
-          problem.AddResidualBlock(
-                MyConstraintCase3::Create(rho[k], beta[k]),
-                NULL,
-                &xji[k],
-                &yji[k]);
-
-
-        }
-
-        // Optimization
-//        cout << "The number of residual block is : " << problem.NumResidualBlocks() << endl;
-        Solver::Options options;
-        options.linear_solver_type=ceres::DENSE_QR;
-        options.minimizer_progress_to_stdout=true;
-        Solver::Summary summary;
-        Solve(options,&problem,&summary);
-
-        for (auto& ele : thetaji)
-          ele += 2 * M_PI;
-
-        for(int k = stepSize *(i-1); k < stepSize * i; ++k){
-          slidingXji.push_back(xji[k]);
-          slidingYji.push_back(yji[k]);
-          slidingThetaji.push_back(thetaji[k]);
-
-          xji.clear();
-          yji.clear();
-          thetaji.clear();
-        }
-        cout << "size of slidingXji is : " << slidingXji.size() << endl;
-      }
-
-      if (i == numOfSliding + 1)
-      {
-        cout << "Last iteration :" << i << endl;
-
-        int slidingWindow = colSize;
-
-        for(int k = 0; k < slidingWindow-1; ++k)
-        {
-//          // case 1~3 odometry constraint
-//          problem.AddResidualBlock(
-//                NetworkOdomConstraint::Create(delta_t[k]),
-//                NULL,
-//                &(xji[k]),
-//                &(yji[k]),
-//                &(thetaji[k]),
-//                &(xji[k+1]),
-//                &(yji[k+1]),
-//                &(thetaji[k+1]));
+        // case 1~3 odometry constraint
+//        problem.AddResidualBlock(
+//              NetworkOdomConstraint::Create(delta_t[k]),
+//              NULL,
+//              &(xji[k]),
+//              &(yji[k]),
+//              &(thetaji[k]),
+//              &(xji[k+1]),
+//              &(yji[k+1]),
+//              &(thetaji[k+1]));
 
          // case4 odometry constraint
          problem.AddResidualBlock(
@@ -444,7 +358,8 @@ int main(int argc, char** argv)
                &(wj[k+1])
                );
 
-          // measurement constraint
+        // measurement constraint
+
 //             problem.AddResidualBlock(
 //               MyConstraintCase1::Create(rho[k]),
 //               NULL,
@@ -459,37 +374,38 @@ int main(int argc, char** argv)
 //                 &yji[k]
 //                   );
 
-          problem.AddResidualBlock(
-                MyConstraintCase3::Create(rho[k], beta[k]),
-                NULL,
-                &xji[k],
-                &yji[k]);
+        problem.AddResidualBlock(
+              MyConstraintCase3::Create(rho[k], beta[k]),
+              NULL,
+              &xji[k],
+              &yji[k]
+              );
 
         }
 
-
         // Optimization
+//        cout << "The number of residual block is : " << problem.NumResidualBlocks() << endl;
         Solver::Options options;
         options.linear_solver_type=ceres::DENSE_QR;
         options.minimizer_progress_to_stdout=true;
         Solver::Summary summary;
         Solve(options,&problem,&summary);
 
-        for (auto& ele : thetaji)
-          ele += 2 * M_PI;
-
-        for(int k = stepSize * (i-1); k < stepSize * (i-1) + arithmeticNum; ++k){
-          cout << "The k-th step size in last Iterlation is : " << k << endl;
-          slidingXji.push_back(xji[k]);
-          slidingYji.push_back(yji[k]);
-          slidingThetaji.push_back(thetaji[k]);
-
-          xji.clear();
-          yji.clear();
-          thetaji.clear();
+        if (i == 0) // first iteration
+        {
+          for(int k = 0; k < slidingWindow; ++k){
+            slidingXji.push_back(xji[k]);
+            slidingYji.push_back(yji[k]);
+            slidingThetaji.push_back(thetaji[k] + 2*M_PI);
+          }
         }
-        cout << "size of slidingXji is : " << slidingXji.size() << endl;
-      }
+        else {
+          slidingXji.push_back(xji[i+slidingWindow-1]);
+          slidingYji.push_back(yji[i+slidingWindow-1]);
+          slidingThetaji.push_back(thetaji[i+slidingWindow-1] + 2*M_PI);
+        }
+
+        cout << "i is : " << i << ", size of slidinXji is " << slidingXji.size() << endl;
     }
 
     // Record the ending time
@@ -500,8 +416,6 @@ int main(int argc, char** argv)
 
     // Output the duration in milliseconds
     std::cout << "Time duration: " << duration.count() << "milliseconds" << endl;
-
-
 
 
   ////**********************Save CSV file****************************
@@ -515,8 +429,7 @@ int main(int argc, char** argv)
 //    std::string header7 = "trueYji";
 //    std::string header8 = "trueThetaji";
 
-//    const std::string filename = "/home/gihun/catkin_ws/src/multiple_turtlebots_sim/data/withoutOutlier/slidingNls/case4-2.csv";
-
+//    const std::string filename = "/home/gihun/catkin_ws/src/multiple_turtlebots_sim/data/withoutOutlier/slidingNlsFiltering/test.csv";
 
 //    std::ofstream outputFile(filename);
 
@@ -529,9 +442,9 @@ int main(int argc, char** argv)
 //    outputFile << header1 << "," << header2 << "," << header3 <<  "," << header4 << "," << header5 <<
 //                  "," << header6 << "," << header7 << "," << header8 << std::endl;
 
+//    cout << "here" << endl;
+
 //    // Write the vectors as columns in the CSV file
-////    size_t maxLength = slidingXji.size();
-////    cout << "sliding size is : " << maxLength << endl;
 //    for (size_t i = 0; i < colSize; ++i){
 //        outputFile << slidingXji[i];
 //        outputFile << ","; // Add a comma to separate columns
@@ -551,10 +464,10 @@ int main(int argc, char** argv)
 //        outputFile << std::endl; // Start a new row
 //    }
 
+
 //    outputFile.close();
 
 //    std::cout << "Data saved to " << filename << std::endl;
-
     return 0;
-
 }
+

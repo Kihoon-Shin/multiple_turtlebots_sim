@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 #include "math.h"
@@ -474,39 +475,42 @@ int main(int argc, char** argv){
   initialVj = vj;
   initialWj = wj;
 
-  // ====================================Optimization========================================
-  ceres::Problem problem;
+// ====================================Optimization========================================
+  // Record the starting time
+  auto start_time = std::chrono::high_resolution_clock::now();
 
-//  for(int i=0;i<csvparser.ncol_-1;i++){
+  // Perform task that you want to measure the duration
+
+  ceres::Problem problem;
   for(int i = 0; i < colSize - 1; i++){
 
-    // case1~3 odometry constraint
-    problem.AddResidualBlock(
-        NetworkOdomConstraint::Create(delta_t[i]),
-        NULL,
-        &(xji[i]),
-        &(yji[i]),
-        &(thetaji[i]),
-        &(xji[i+1]),
-        &(yji[i+1]),
-        &(thetaji[i+1])
-        );
-
-//     // case4 odometry constraint
+//    // case1~3 odometry constraint
 //    problem.AddResidualBlock(
-//          withoutNetworkOdomConstraint::Create(delta_t[i]),
-//          NULL,
-//          &(xji[i]),
-//          &(yji[i]),
-//          &(thetaji[i]),
-//          &(vj[i]),
-//          &(wj[i]),
-//          &(xji[i+1]),
-//          &(yji[i+1]),
-//          &(thetaji[i+1]),
-//          &(vj[i+1]),
-//          &(wj[i+1])
-//          );
+//        NetworkOdomConstraint::Create(delta_t[i]),
+//        NULL,
+//        &(xji[i]),
+//        &(yji[i]),
+//        &(thetaji[i]),
+//        &(xji[i+1]),
+//        &(yji[i+1]),
+//        &(thetaji[i+1])
+//        );
+
+     // case4 odometry constraint
+    problem.AddResidualBlock(
+          withoutNetworkOdomConstraint::Create(delta_t[i]),
+          NULL,
+          &(xji[i]),
+          &(yji[i]),
+          &(thetaji[i]),
+          &(vj[i]),
+          &(wj[i]),
+          &(xji[i+1]),
+          &(yji[i+1]),
+          &(thetaji[i+1]),
+          &(vj[i+1]),
+          &(wj[i+1])
+          );
 
     // // measurement constraint
 //    problem.AddResidualBlock(
@@ -517,12 +521,12 @@ int main(int argc, char** argv){
 //      &thetaji[i]
 //      );
 
-    problem.AddResidualBlock(
-      MyConstraintCase1::Create(rho[i]),
-      NULL,
-      &xji[i],
-      &yji[i]
-      );
+//    problem.AddResidualBlock(
+//      MyConstraintCase1::Create(rho[i]),
+//      NULL,
+//      &xji[i],
+//      &yji[i]
+//      );
 
 //    problem.AddResidualBlock(
 //          MyConstraintCase2::Create(beta[i]),
@@ -531,12 +535,12 @@ int main(int argc, char** argv){
 //        &yji[i]
 //          );
 
-//      problem.AddResidualBlock(
-//            MyConstraintCase3::Create(o_rho[i], o_beta[i]), // o_rhom, o_beta : data with outliers
-//          NULL,
-//          &xji[i],
-//          &yji[i]
-//            );
+      problem.AddResidualBlock(
+            MyConstraintCase3::Create(rho[i], beta[i]), // o_rhom, o_beta : data with outliers
+          NULL,
+          &xji[i],
+          &yji[i]
+            );
   }
 
   // Optimization
@@ -549,71 +553,82 @@ int main(int argc, char** argv){
   for (auto& ele : thetaji)
     ele += 2 * M_PI;
 
+  // Record the ending time
+  auto end_time = std::chrono::high_resolution_clock::now();
+
+  // Calculate the time duration
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+  // Output the duration in milliseconds
+  std::cout << "Time duration: " << duration.count() << "milliseconds" << endl;
+
+
+
 ////**********************Save CSV file****************************
 
-  std::string header1 = "xji";
-  std::string header2 = "yji";
-  std::string header3 = "thetaji";
-  std::string header4 = "vj";
-  std::string header5 = "wj";
-  std::string header6 = "trueXji";
-  std::string header7 = "trueYji";
-  std::string header8 = "trueThetaji";
+//  std::string header1 = "xji";
+//  std::string header2 = "yji";
+//  std::string header3 = "thetaji";
+//  std::string header4 = "vj";
+//  std::string header5 = "wj";
+//  std::string header6 = "trueXji";
+//  std::string header7 = "trueYji";
+//  std::string header8 = "trueThetaji";
 
-  const std::string filename = "/home/gihun/catkin_ws/src/multiple_turtlebots_sim/data/withoutOutlier/case1-1.csv";
+//  const std::string filename = "/home/gihun/catkin_ws/src/multiple_turtlebots_sim/data/withoutOutlier/Nls/test.csv";
 
 
-  std::ofstream outputFile(filename);
+//  std::ofstream outputFile(filename);
 
-  if (!outputFile.is_open()){
-      std::cerr << "Error: Unable to open the file " << filename << std::endl;
-      return 1;
-  }
+//  if (!outputFile.is_open()){
+//      std::cerr << "Error: Unable to open the file " << filename << std::endl;
+//      return 1;
+//  }
 
-  // Write headers to the CSV file
-  outputFile << header1 << "," << header2 << "," << header3 <<  "," << header4 << "," << header5 <<
-                "," << header6 << "," << header7 << "," << header8 << std::endl;
+//  // Write headers to the CSV file
+//  outputFile << header1 << "," << header2 << "," << header3 <<  "," << header4 << "," << header5 <<
+//                "," << header6 << "," << header7 << "," << header8 << std::endl;
 
-  // Write the vectors as columns in the CSV file
-  size_t maxLength = t_xji.size();
-  for (size_t i = 0; i < maxLength; ++i){
-      if (i < xji.size()){
-          outputFile << xji[i];
-      }
-      outputFile << ","; // Add a comma to separate columns
-      if (i < yji.size()){
-          outputFile << yji[i];
-      }
-      outputFile << ",";
-      if (i < thetaji.size()){
-          outputFile << thetaji[i];
-      }
-      outputFile << ",";
-      if (i < vj.size()){
-          outputFile << vj[i];
-      }
-      outputFile << ",";
-      if (i < wj.size()){
-          outputFile << wj[i];
-      }
-      outputFile << ",";
-      if (i < t_xji.size()){
-          outputFile << t_xji[i];
-      }
-      outputFile << ",";
-      if (i < t_yji.size()){
-          outputFile << t_yji[i];
-      }
-      outputFile << ",";
-      if (i < t_thetaji.size()){
-          outputFile << t_thetaji[i];
-      }
-      outputFile << std::endl; // Start a new row
-  }
+//  // Write the vectors as columns in the CSV file
+//  size_t maxLength = t_xji.size();
+//  for (size_t i = 0; i < maxLength; ++i){
+//      if (i < xji.size()){
+//          outputFile << xji[i];
+//      }
+//      outputFile << ","; // Add a comma to separate columns
+//      if (i < yji.size()){
+//          outputFile << yji[i];
+//      }
+//      outputFile << ",";
+//      if (i < thetaji.size()){
+//          outputFile << thetaji[i];
+//      }
+//      outputFile << ",";
+//      if (i < vj.size()){
+//          outputFile << vj[i];
+//      }
+//      outputFile << ",";
+//      if (i < wj.size()){
+//          outputFile << wj[i];
+//      }
+//      outputFile << ",";
+//      if (i < t_xji.size()){
+//          outputFile << t_xji[i];
+//      }
+//      outputFile << ",";
+//      if (i < t_yji.size()){
+//          outputFile << t_yji[i];
+//      }
+//      outputFile << ",";
+//      if (i < t_thetaji.size()){
+//          outputFile << t_thetaji[i];
+//      }
+//      outputFile << std::endl; // Start a new row
+//  }
 
-  outputFile.close();
+//  outputFile.close();
 
-  std::cout << "Data saved to " << filename << std::endl;
+//  std::cout << "Data saved to " << filename << std::endl;
 
 
 //**********************Visualization****************************
@@ -677,38 +692,38 @@ int main(int argc, char** argv){
 //    plt::grid(true);
 //    plt::legend();
 
-    plt::subplot(5,1,1);
-    plt::plot(t_xji, {{"label", "true_x"}});
-    plt::plot(xji, {{"label", "ceres_x"}});
-    plt::grid(true);
-    plt::legend();
+//    plt::subplot(5,1,1);
+//    plt::plot(t_xji, {{"label", "true_x"}});
+//    plt::plot(xji, {{"label", "ceres_x"}});
+//    plt::grid(true);
+//    plt::legend();
 
 
-    plt::subplot(5,1,2);
-    plt::plot(t_yji, {{"label", "true_y"}});
-    plt::plot(yji, {{"label", "ceres_y"}});
-    plt::grid(true);
-    plt::legend();
+//    plt::subplot(5,1,2);
+//    plt::plot(t_yji, {{"label", "true_y"}});
+//    plt::plot(yji, {{"label", "ceres_y"}});
+//    plt::grid(true);
+//    plt::legend();
 
-    plt::subplot(5,1,3);
-    plt::plot(t_thetaji, {{"label", "true_theta"}});
-    plt::plot(thetaji, {{"label", "ceres_theta"}});
-    plt::grid(true);
-    plt::legend();
+//    plt::subplot(5,1,3);
+//    plt::plot(t_thetaji, {{"label", "true_theta"}});
+//    plt::plot(thetaji, {{"label", "ceres_theta"}});
+//    plt::grid(true);
+//    plt::legend();
 
-    plt::subplot(5,1,4);
-    plt::plot(trueVj, {{"label", "true_vj"}});
-    plt::plot(vj, {{"label", "vj"}});
-    plt::grid(true);
-    plt::legend();
+//    plt::subplot(5,1,4);
+//    plt::plot(trueVj, {{"label", "true_vj"}});
+//    plt::plot(vj, {{"label", "vj"}});
+//    plt::grid(true);
+//    plt::legend();
 
-    plt::subplot(5,1,5);
-    plt::plot(trueWj, {{"label", "true_wj"}});
-    plt::plot(wj, {{"label", "wj"}});
-    plt::grid(true);
-    plt::legend();
+//    plt::subplot(5,1,5);
+//    plt::plot(trueWj, {{"label", "true_wj"}});
+//    plt::plot(wj, {{"label", "wj"}});
+//    plt::grid(true);
+//    plt::legend();
 
-    plt::show();
+//    plt::show();
 
   return 0;
 }
